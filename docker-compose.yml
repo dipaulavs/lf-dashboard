@@ -10,7 +10,7 @@ services:
     volumes:
       - ./:/app
     environment:
-      - PORT=5000
+      - FLASK_PORT=5000
       - PYTHONUNBUFFERED=1
     networks:
       - loop9Net
