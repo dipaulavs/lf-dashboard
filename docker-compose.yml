@@ -14,18 +14,18 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - loop9Net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.lfimoveis.rule=Host(`lfimoveis.loop9.com.br`)"
-      - "traefik.http.routers.lfimoveis.entrypoints=websecure"
-      - "traefik.http.routers.lfimoveis.tls.certresolver=letsencrypt"
-      - "traefik.http.services.lfimoveis.loadbalancer.server.port=5000"
     deploy:
       replicas: 1
       restart_policy:
         condition: any
         delay: 5s
         max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.lfimoveis.rule=Host(`lfimoveis.loop9.com.br`)"
+        - "traefik.http.routers.lfimoveis.entrypoints=websecure"
+        - "traefik.http.routers.lfimoveis.tls.certresolver=letsencrypt"
+        - "traefik.http.services.lfimoveis.loadbalancer.server.port=5000"
 
 networks:
   loop9Net:
