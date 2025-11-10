@@ -39,12 +39,7 @@ class UserModel:
             )
         """)
 
-        # Índices
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_google_id ON users(google_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email ON users(email)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_approved ON users(approved)")
-
-        # Adicionar colunas se não existirem (migração)
+        # Adicionar colunas se não existirem (migração) - ANTES dos índices
         try:
             cursor.execute("ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 0")
         except:
@@ -54,6 +49,11 @@ class UserModel:
             cursor.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
         except:
             pass
+
+        # Índices (depois das colunas existirem)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_google_id ON users(google_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email ON users(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_approved ON users(approved)")
 
         conn.commit()
         conn.close()
