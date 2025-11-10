@@ -28,6 +28,7 @@ services:
         - "traefik.http.routers.lfimoveis-http.middlewares=redirect-to-https"
         - "traefik.http.routers.lfimoveis.rule=Host(`lfimoveis.loop9.com.br`)"
         - "traefik.http.routers.lfimoveis.entrypoints=websecure"
+        - "traefik.http.routers.lfimoveis.tls=true"
         - "traefik.http.routers.lfimoveis.tls.certresolver=letsencrypt"
         - "traefik.http.services.lfimoveis.loadbalancer.server.port=5000"
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
