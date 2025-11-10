@@ -3,74 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aguardando Aprovação - Dashboard Imóveis</title>
+    <title>Aguardando Aprovação - L&F Imóveis Dashboard</title>
     <style>
+        /* ==================== MOTHERDUCK STYLE ==================== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --beige: rgb(244, 239, 234);
+            --yellow: rgb(255, 222, 0);
+            --dark-gray: rgb(56, 56, 56);
+            --black: rgb(0, 0, 0);
+            --white: rgb(255, 255, 255);
+            --border-width: 2px;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--beige);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 2rem;
         }
 
         .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
+            background: var(--white);
+            border: var(--border-width) solid var(--dark-gray);
+            border-radius: 0;
+            padding: 3rem 2.5rem;
+            max-width: 600px;
             width: 100%;
-            padding: 40px;
             text-align: center;
+            box-shadow: 8px 8px 0 var(--dark-gray);
         }
 
         .icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            filter: grayscale(100%);
         }
 
         h1 {
-            color: #1a202c;
-            font-size: 28px;
-            margin-bottom: 16px;
-            font-weight: 700;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            font-size: 1.8rem;
+            color: var(--dark-gray);
+            margin-bottom: 1rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
         }
 
         .message {
-            color: #4a5568;
-            font-size: 16px;
+            color: var(--dark-gray);
+            font-size: 1rem;
             line-height: 1.6;
-            margin-bottom: 24px;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+
+        .user-info {
+            background: var(--beige);
+            border: var(--border-width) solid var(--dark-gray);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-align: left;
+        }
+
+        .user-avatar {
+            width: 56px;
+            height: 56px;
+            border: var(--border-width) solid var(--dark-gray);
+            border-radius: 0;
+            object-fit: cover;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-family: 'SF Mono', monospace;
+            font-weight: 700;
+            color: var(--black);
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .user-email {
+            color: var(--dark-gray);
+            font-size: 0.875rem;
+            font-family: 'SF Mono', monospace;
+            opacity: 0.7;
         }
 
         .info-box {
-            background: #f7fafc;
-            border-left: 4px solid #667eea;
-            padding: 16px;
-            border-radius: 8px;
+            background: var(--white);
+            border: var(--border-width) solid var(--dark-gray);
+            border-left: 6px solid var(--yellow);
+            padding: 1.5rem;
             text-align: left;
-            margin-bottom: 24px;
+            margin-bottom: 2rem;
         }
 
         .info-box p {
-            color: #2d3748;
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 8px;
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+            font-family: 'SF Mono', monospace;
         }
 
         .info-box p:last-child {
@@ -78,66 +128,46 @@
         }
 
         .info-box strong {
-            color: #1a202c;
-        }
-
-        .user-info {
-            background: #edf2f7;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .user-details {
-            text-align: left;
-            flex: 1;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: #1a202c;
-            font-size: 14px;
-        }
-
-        .user-email {
-            color: #718096;
-            font-size: 13px;
+            color: var(--black);
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
         .logout-btn {
-            background: #e53e3e;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            background: var(--white);
+            color: var(--black);
+            border: var(--border-width) solid var(--dark-gray);
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
             display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-family: 'SF Mono', monospace;
+            box-shadow: 4px 4px 0 var(--dark-gray);
         }
 
         .logout-btn:hover {
-            background: #c53030;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--dark-gray);
+        }
+
+        .logout-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 var(--dark-gray);
         }
 
         .footer {
-            margin-top: 24px;
-            color: #a0aec0;
-            font-size: 12px;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: var(--border-width) solid var(--dark-gray);
+            color: var(--dark-gray);
+            font-size: 0.85rem;
+            font-family: 'SF Mono', monospace;
+            opacity: 0.7;
         }
 
         @keyframes pulse {
@@ -152,6 +182,25 @@
         .pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 2.5rem 2rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .icon {
+                font-size: 4rem;
+            }
+
+            .user-info {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -163,7 +212,7 @@
         <h1>Aguardando Aprovação</h1>
 
         <p class="message">
-            Sua conta foi criada com sucesso, mas você ainda não tem permissão para acessar o sistema.
+            Sua conta foi criada, mas você ainda não tem permissão para acessar o sistema.
         </p>
 
         <div class="user-info" id="userInfo">
@@ -171,16 +220,16 @@
         </div>
 
         <div class="info-box">
-            <p><strong>O que fazer agora?</strong></p>
-            <p>Entre em contato com o administrador do sistema para solicitar a aprovação do seu acesso.</p>
-            <p style="margin-top: 12px;"><strong>Administrador:</strong> Felipe de Paula</p>
-            <p><strong>Email:</strong> felipidipaula@gmail.com</p>
+            <p><strong>▸ Próximos passos:</strong></p>
+            <p>Entre em contato com o administrador do sistema para solicitar aprovação de acesso.</p>
+            <p style="margin-top: 1rem;"><strong>▸ Admin:</strong> Felipe de Paula</p>
+            <p><strong>▸ Email:</strong> felipidipaula@gmail.com</p>
         </div>
 
-        <a href="/logout" class="logout-btn">Sair</a>
+        <a href="/logout" class="logout-btn">← Fazer Logout</a>
 
         <p class="footer">
-            Você receberá acesso assim que o administrador aprovar sua conta.
+            Você receberá acesso assim que o administrador aprovar sua conta
         </p>
     </div>
 
