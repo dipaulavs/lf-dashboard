@@ -23,15 +23,11 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=loop9Net"
-        - "traefik.http.routers.lfimoveis-http.rule=Host(`lfimoveis.loop9.com.br`)"
-        - "traefik.http.routers.lfimoveis-http.entrypoints=web"
-        - "traefik.http.routers.lfimoveis-http.middlewares=redirect-to-https"
         - "traefik.http.routers.lfimoveis.rule=Host(`lfimoveis.loop9.com.br`)"
         - "traefik.http.routers.lfimoveis.entrypoints=websecure"
         - "traefik.http.routers.lfimoveis.tls=true"
         - "traefik.http.routers.lfimoveis.tls.certresolver=letsencryptresolver"
         - "traefik.http.services.lfimoveis.loadbalancer.server.port=5000"
-        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 networks:
   loop9Net:
