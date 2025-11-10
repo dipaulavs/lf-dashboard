@@ -16,10 +16,10 @@ services:
       - loop9Net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard-imoveis.rule=Host(`dashboard-imoveis.loop9.com.br`)"
-      - "traefik.http.routers.dashboard-imoveis.entrypoints=websecure"
-      - "traefik.http.routers.dashboard-imoveis.tls.certresolver=letsencrypt"
-      - "traefik.http.services.dashboard-imoveis.loadbalancer.server.port=5000"
+      - "traefik.http.routers.lfimoveis.rule=Host(`lfimoveis.loop9.com.br`)"
+      - "traefik.http.routers.lfimoveis.entrypoints=websecure"
+      - "traefik.http.routers.lfimoveis.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lfimoveis.loadbalancer.server.port=5000"
     deploy:
       replicas: 1
       restart_policy:
