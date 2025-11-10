@@ -4,20 +4,39 @@ Dashboard de Imóveis + API REST
 Integração com Innoitune Agent via HTTP Request
 """
 
-from flask import Flask, request, jsonify, send_from_directory, make_response
+from flask import Flask, request, jsonify, send_from_directory, make_response, session, redirect, url_for, render_template_string
 from flask_cors import CORS
 from functools import wraps
 import json
 import os
 import time
+import secrets
 from datetime import datetime
 from database import LeadsDatabase
+from auth import init_oauth, login_required, UserModel
 
 app = Flask(__name__)
 CORS(app)
 
+# Configurar secret key para sessões
+app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
+
+# Configurações de sessão segura
+app.config.update(
+    SESSION_COOKIE_SECURE=True if os.getenv('FLASK_ENV') == 'production' else False,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=86400  # 24 horas
+)
+
+# Inicializar OAuth Google
+google_oauth = init_oauth(app)
+
 # Inicializar banco de leads
 db_leads = LeadsDatabase()
+
+# Inicializar modelo de usuários
+user_model = UserModel(db_leads)
 
 # Configurações
 API_KEY = os.getenv('API_KEY', 'dev-token-12345')
@@ -28,7 +47,85 @@ IMOVEIS_DIR = os.path.join(DATA_DIR, 'imoveis')
 # Garantir que diretórios existem
 os.makedirs(IMOVEIS_DIR, exist_ok=True)
 
-# ==================== AUTENTICAÇÃO ====================
+# ==================== ROTAS DE AUTENTICAÇÃO OAUTH ====================
+
+@app.route('/login')
+def login():
+    """Página de login - Se já logado, redireciona para dashboard"""
+    # Se já está logado, vai direto para dashboard
+    if 'user' in session:
+        return redirect('/')
+
+    # Mostra página de login
+    return send_from_directory('static', 'login.html')
+
+
+@app.route('/auth/google')
+def auth_google():
+    """Inicia fluxo OAuth com Google"""
+    # Define URL de callback baseado no ambiente
+    if os.getenv('FLASK_ENV') == 'production':
+        redirect_uri = 'https://lfimoveis.loop9.com.br/authorize'
+    else:
+        redirect_uri = url_for('authorize', _external=True)
+
+    return google_oauth.authorize_redirect(redirect_uri)
+
+
+@app.route('/authorize')
+def authorize():
+    """Callback do OAuth Google"""
+    try:
+        # Troca código por token
+        token = google_oauth.authorize_access_token()
+
+        # Pega informações do usuário
+        user_info = token.get('userinfo')
+
+        if not user_info:
+            return jsonify({'error': 'Falha ao obter informações do usuário'}), 400
+
+        # Salva usuário no banco
+        resultado = user_model.criar_ou_atualizar(user_info, token)
+
+        if not resultado['success']:
+            return jsonify({'error': resultado['error']}), 500
+
+        # Salva na sessão
+        session.permanent = True
+        session['user'] = {
+            'id': resultado['user_id'],
+            'google_id': user_info['sub'],
+            'email': user_info['email'],
+            'name': user_info.get('name', ''),
+            'picture': user_info.get('picture', '')
+        }
+
+        # Redireciona para dashboard
+        return redirect('/')
+
+    except Exception as e:
+        return jsonify({'error': f'Erro na autenticação: {str(e)}'}), 500
+
+
+@app.route('/logout')
+def logout():
+    """Faz logout do usuário"""
+    session.pop('user', None)
+    return redirect('/login')
+
+
+@app.route('/api/user')
+@login_required
+def api_user():
+    """Retorna dados do usuário logado"""
+    return jsonify({
+        'success': True,
+        'user': session.get('user')
+    })
+
+
+# ==================== AUTENTICAÇÃO API ====================
 
 def require_api_key(f):
     """Decorator para validar API Key"""
@@ -92,8 +189,9 @@ def proximo_id():
 # ==================== ROTAS FRONTEND ====================
 
 @app.route('/')
+@login_required
 def index():
-    """Servir dashboard HTML com cache busting"""
+    """Servir dashboard HTML com cache busting (requer autenticação)"""
     # Ler HTML
     with open('static/index.html', 'r', encoding='utf-8') as f:
         html = f.read()

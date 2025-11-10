@@ -36,6 +36,10 @@ data/
 .env
 .env.local
 
+# OAuth Credentials (NUNCA COMMITAR!)
+config/oauth_credentials.json
+config/google_credentials.json
+
 # IDEs
 .vscode/
 .idea/
