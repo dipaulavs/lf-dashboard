@@ -63,12 +63,8 @@ def login():
 @app.route('/auth/google')
 def auth_google():
     """Inicia fluxo OAuth com Google"""
-    # Define URL de callback baseado no ambiente
-    if os.getenv('FLASK_ENV') == 'production':
-        redirect_uri = 'https://lfimoveis.loop9.com.br/authorize'
-    else:
-        redirect_uri = url_for('authorize', _external=True)
-
+    # Sempre usar HTTPS em produção
+    redirect_uri = 'https://lfimoveis.loop9.com.br/authorize'
     return google_oauth.authorize_redirect(redirect_uri)
 
 
