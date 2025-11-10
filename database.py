@@ -503,3 +503,39 @@ class LeadsDatabase:
 
         conn.close()
         return resultado['valor'] if resultado else None
+
+    def deletar_lead(self, whatsapp: str) -> Dict[str, Any]:
+        """Deleta um lead e seu histórico"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        try:
+            # Verificar se lead existe
+            cursor.execute("SELECT id FROM leads WHERE whatsapp = ?", (whatsapp,))
+            if not cursor.fetchone():
+                conn.close()
+                return {
+                    "success": False,
+                    "error": "Lead não encontrado"
+                }
+
+            # Deletar histórico primeiro (foreign key)
+            cursor.execute("DELETE FROM score_historico WHERE whatsapp = ?", (whatsapp,))
+
+            # Deletar lead
+            cursor.execute("DELETE FROM leads WHERE whatsapp = ?", (whatsapp,))
+
+            conn.commit()
+            conn.close()
+
+            return {
+                "success": True,
+                "message": "Lead deletado com sucesso"
+            }
+
+        except Exception as e:
+            conn.close()
+            return {
+                "success": False,
+                "error": str(e)
+            }

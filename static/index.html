@@ -127,11 +127,12 @@
                             <th>Imóvel</th>
                             <th>Agendou?</th>
                             <th>Atualizado</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="leadsBody">
                         <tr>
-                            <td colspan="6" class="loading">Carregando leads...</td>
+                            <td colspan="7" class="loading">Carregando leads...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -216,10 +217,11 @@
                             <th>WhatsApp</th>
                             <th>Status</th>
                             <th>Observações</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="agendaTableBody">
-                        <tr><td colspan="6">Carregando...</td></tr>
+                        <tr><td colspan="7">Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -320,10 +322,13 @@
                                     <td>${a.whatsapp}</td>
                                     <td>${a.status}</td>
                                     <td>${a.observacoes || '-'}</td>
+                                    <td>
+                                        <button onclick="deletarAgendamento(${a.id})" style="background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">🗑️ Deletar</button>
+                                    </td>
                                 </tr>
                             `).join('');
                         } else {
-                            tbody.innerHTML = '<tr><td colspan="6">Nenhum agendamento</td></tr>';
+                            tbody.innerHTML = '<tr><td colspan="7">Nenhum agendamento</td></tr>';
                         }
 
                         // Carregar estatísticas
@@ -338,6 +343,27 @@
                     } catch (error) {
                         console.error('❌ Erro:', error);
                         alert('Erro ao carregar agendamentos: ' + error.message);
+                    }
+                };
+
+                // Deletar agendamento
+                window.deletarAgendamento = async function(id) {
+                    try {
+                        const resp = await fetch(`/api/agenda/agendamentos/${id}`, {
+                            method: 'DELETE'
+                        });
+
+                        const result = await resp.json();
+
+                        if (result.success) {
+                            // Atualizar tabela automaticamente
+                            window.agendaCarregar();
+                        } else {
+                            alert('❌ Erro: ' + result.error);
+                        }
+                    } catch (error) {
+                        console.error('❌ Erro ao deletar:', error);
+                        alert('Erro ao deletar agendamento: ' + error.message);
                     }
                 };
 

@@ -255,7 +255,7 @@ function renderizarTabelaLeads(leads) {
     const tbody = document.getElementById('leadsBody');
 
     if (leads.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum lead encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Nenhum lead encontrado</td></tr>';
         return;
     }
 
@@ -274,6 +274,9 @@ function renderizarTabelaLeads(leads) {
                 <td>${imovelTitulo}</td>
                 <td style="text-align: center;">${agendouEmoji}</td>
                 <td>${dataAtualizada}</td>
+                <td>
+                    <button onclick="deletarLead('${lead.whatsapp}')" style="background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">🗑️ Deletar</button>
+                </td>
             </tr>
         `;
     }).join('');
@@ -404,3 +407,28 @@ async function exportarLeadsCSV() {
         alert('Erro ao exportar CSV');
     }
 }
+
+// ==================== DELETAR LEAD ====================
+
+async function deletarLead(whatsapp) {
+    try {
+        const response = await fetch(`${API_BASE}/api/leads/${whatsapp}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${API_KEY}` }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Recarregar dados automaticamente
+            carregarDadosLeads();
+        } else {
+            alert('❌ Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao deletar lead:', error);
+        alert('Erro ao deletar lead: ' + error.message);
+    }
+}
+
+window.deletarLead = deletarLead;

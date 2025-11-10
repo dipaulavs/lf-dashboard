@@ -956,6 +956,18 @@ def buscar_lead(whatsapp):
         'historico': historico
     })
 
+@app.route('/api/leads/<whatsapp>', methods=['DELETE'])
+@require_api_key
+def deletar_lead_route(whatsapp):
+    """Deleta um lead"""
+    whatsapp = whatsapp.replace('+', '').replace(' ', '').replace('-', '')
+    resultado = db_leads.deletar_lead(whatsapp)
+
+    if not resultado['success']:
+        return jsonify(resultado), 404
+
+    return jsonify(resultado)
+
 @app.route('/api/leads/export', methods=['GET'])
 @require_api_key
 def exportar_leads():
@@ -1216,17 +1228,7 @@ def agendar_visita_agente():
     # Limpar whatsapp
     whatsapp = str(dados['whatsapp']).replace('+', '').replace(' ', '').replace('-', '')
 
-    # Verificar se imóvel existe
-    indice = ler_indice()
-    imovel = next((i for i in indice['imoveis'] if i['id'] == dados['imovel_id']), None)
-
-    if not imovel:
-        return jsonify({
-            'success': False,
-            'error': f'Imóvel ID {dados["imovel_id"]} não encontrado'
-        }), 404
-
-    # Criar agendamento
+    # Criar agendamento (sem validar imóvel)
     resultado = db_leads.criar_agendamento(
         nome_cliente=dados['nome_cliente'],
         whatsapp=whatsapp,
@@ -1261,7 +1263,7 @@ def agendar_visita_agente():
         'detalhes': {
             'cliente': dados['nome_cliente'],
             'whatsapp': whatsapp,
-            'imovel': imovel['titulo'],
+            'imovel_id': dados['imovel_id'],
             'data': data_formatada,
             'hora': dados['hora_visita']
         }
