@@ -22,11 +22,10 @@ services:
         max_attempts: 3
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=loop9Net"
         - "traefik.http.routers.lfimoveis.rule=Host(`lfimoveis.loop9.com.br`)"
         - "traefik.http.routers.lfimoveis.entrypoints=websecure"
-        - "traefik.http.routers.lfimoveis.tls=true"
         - "traefik.http.routers.lfimoveis.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.lfimoveis.service=lfimoveis"
         - "traefik.http.services.lfimoveis.loadbalancer.server.port=5000"
 
 networks:
