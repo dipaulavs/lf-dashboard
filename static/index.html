@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L&F Imóveis - Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 L&F Imóveis</h1>
+            <p class="subtitle">Gestão de imóveis e leads para integração com Innoitune</p>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="imoveis">📦 Imóveis</button>
+            <button class="tab-button" data-tab="leads">👥 Leads</button>
+            <button class="tab-button" data-tab="agenda">📅 Agenda</button>
+        </div>
+
+        <!-- TAB: IMÓVEIS -->
+        <div id="tab-imoveis" class="tab-content active">
+            <div class="actions">
+                <button id="btnNovoImovel" class="btn btn-primary">+ Novo Imóvel</button>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar imóvel...">
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total de Imóveis</span>
+                    <span class="stat-value" id="totalImoveis">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Disponíveis</span>
+                    <span class="stat-value" id="disponiveis">0</span>
+                </div>
+            </div>
+
+            <div id="tableContainer">
+                <table id="imoveisTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Tipo</th>
+                            <th>Cidade</th>
+                            <th>Área (m²)</th>
+                            <th>Preço</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="imoveisBody">
+                        <tr>
+                            <td colspan="8" class="loading">Carregando imóveis...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: LEADS -->
+        <div id="tab-leads" class="tab-content">
+            <!-- Filtros -->
+            <div class="filters-leads">
+                <select id="filterScore" class="filter-select">
+                    <option value="all">Todos os scores</option>
+                    <option value="frio">Leads Frios (0-30) ❄️</option>
+                    <option value="morno">Leads Mornos (31-60) 🌡️</option>
+                    <option value="quente">Leads Quentes (61-100) 🔥</option>
+                </select>
+
+                <select id="filterImovel" class="filter-select">
+                    <option value="all">Todos os imóveis</option>
+                </select>
+
+                <select id="filterAgendamento" class="filter-select">
+                    <option value="all">Todos</option>
+                    <option value="true">Agendou visita ✅</option>
+                    <option value="false">Não agendou ❌</option>
+                </select>
+
+                <button id="btnExportarLeads" class="btn btn-secondary">📥 Exportar CSV</button>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total de Leads</span>
+                    <span class="stat-value" id="totalLeads">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Score Médio</span>
+                    <span class="stat-value" id="scoreMedio">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Agendamentos</span>
+                    <span class="stat-value" id="totalAgendamentos">0</span>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Distribuição por Score</h3>
+                    <canvas id="chartScore"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Leads por Imóvel</h3>
+                    <canvas id="chartImoveis"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabela de Leads -->
+            <div id="tableContainer">
+                <table id="leadsTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>WhatsApp</th>
+                            <th>Score</th>
+                            <th>Imóvel</th>
+                            <th>Agendou?</th>
+                            <th>Atualizado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsBody">
+                        <tr>
+                            <td colspan="6" class="loading">Carregando leads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: AGENDA (FORMULÁRIO INLINE) -->
+        <div id="tab-agenda" class="tab-content">
+            <h2>📅 Agenda do Corretor</h2>
+
+            <!-- Observações Gerais da Agenda -->
+            <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: #2196F3;">📋</span> Observações Gerais da Agenda
+                </h3>
+                <textarea id="observacoesGerais" rows="3" placeholder="Ex: Feriado dia 15/11. Sem atendimentos dias 20-25/12 (férias). Horários: 9h-12h e 14h-18h."
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+                <button onclick="window.salvarObservacoesGerais()" class="btn btn-primary" style="margin-top: 12px;">💾 Salvar Observações</button>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value" id="agendaTotal">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Hoje</span>
+                    <span class="stat-value" id="agendaHoje">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Próximos 7 dias</span>
+                    <span class="stat-value" id="agendaProximos">0</span>
+                </div>
+            </div>
+
+            <!-- Formulário Inline -->
+            <div id="agendaFormContainer" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Nova Visita</h3>
+                <form id="agendaForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label>Nome do Cliente *</label>
+                        <input type="text" id="agendaNome" required placeholder="Ex: João Silva" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label>WhatsApp *</label>
+                        <input type="tel" id="agendaWhatsApp" required placeholder="Ex: 31999887766" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label>Data *</label>
+                        <input type="date" id="agendaData" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label>Hora *</label>
+                        <input type="time" id="agendaHora" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label>Observações</label>
+                        <textarea id="agendaObs" rows="2" placeholder="Observações sobre a visita..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                    <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-primary">✅ Salvar Visita</button>
+                        <button type="button" onclick="window.agendaCancelar()" class="btn btn-secondary">❌ Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Botão Toggle -->
+            <div class="actions">
+                <button onclick="window.agendaToggleForm()" class="btn btn-primary" id="btnToggleAgenda">+ Nova Visita</button>
+                <button onclick="window.agendaCarregar()" class="btn btn-secondary">🔄 Atualizar</button>
+            </div>
+
+            <!-- Tabela -->
+            <div id="tableContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>WhatsApp</th>
+                            <th>Status</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agendaTableBody">
+                        <tr><td colspan="6">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Script inline para garantir funcionamento -->
+            <script>
+                console.log('🔥 SCRIPT INLINE DA AGENDA CARREGANDO...');
+
+                // Função para converter data YYYY-MM-DD para DD/MM/YYYY
+                function formatarDataBR(dataISO) {
+                    const [ano, mes, dia] = dataISO.split('-');
+                    return `${dia}/${mes}/${ano}`;
+                }
+
+                // Toggle formulário
+                window.agendaToggleForm = function() {
+                    const container = document.getElementById('agendaFormContainer');
+                    const btn = document.getElementById('btnToggleAgenda');
+
+                    if (container.style.display === 'none') {
+                        // Mostrar formulário
+                        container.style.display = 'block';
+                        btn.textContent = '▲ Ocultar Formulário';
+
+                        // Preencher data de hoje
+                        const hoje = new Date().toISOString().split('T')[0];
+                        document.getElementById('agendaData').value = hoje;
+                    } else {
+                        // Ocultar formulário
+                        container.style.display = 'none';
+                        btn.textContent = '+ Nova Visita';
+                        document.getElementById('agendaForm').reset();
+                    }
+                };
+
+                window.agendaCancelar = function() {
+                    document.getElementById('agendaFormContainer').style.display = 'none';
+                    document.getElementById('btnToggleAgenda').textContent = '+ Nova Visita';
+                    document.getElementById('agendaForm').reset();
+                };
+
+                // Carregar observações gerais
+                window.carregarObservacoesGerais = async function() {
+                    try {
+                        const resp = await fetch('/api/agenda/observacoes');
+                        const data = await resp.json();
+
+                        if (data.success && data.observacoes) {
+                            document.getElementById('observacoesGerais').value = data.observacoes;
+                        }
+                    } catch (error) {
+                        console.error('❌ Erro ao carregar observações:', error);
+                    }
+                };
+
+                // Salvar observações gerais
+                window.salvarObservacoesGerais = async function() {
+                    const obs = document.getElementById('observacoesGerais').value;
+
+                    try {
+                        const resp = await fetch('/api/agenda/observacoes', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ observacoes: obs })
+                        });
+
+                        const result = await resp.json();
+
+                        if (result.success) {
+                            alert('✅ Observações salvas com sucesso!');
+                        } else {
+                            alert('❌ Erro: ' + result.error);
+                        }
+                    } catch (error) {
+                        console.error('❌ Erro:', error);
+                        alert('Erro ao salvar: ' + error.message);
+                    }
+                };
+
+                // Carregar agendamentos
+                window.agendaCarregar = async function() {
+                    console.log('📊 Carregando agendamentos...');
+                    try {
+                        // Carregar observações gerais
+                        await window.carregarObservacoesGerais();
+
+                        const resp = await fetch('/api/agenda/agendamentos');
+                        const data = await resp.json();
+
+                        // Atualizar tabela
+                        const tbody = document.getElementById('agendaTableBody');
+                        if (data.agendamentos && data.agendamentos.length > 0) {
+                            tbody.innerHTML = data.agendamentos.map(a => `
+                                <tr>
+                                    <td>${formatarDataBR(a.data_visita)}</td>
+                                    <td>${a.hora_visita}</td>
+                                    <td>${a.nome_cliente}</td>
+                                    <td>${a.whatsapp}</td>
+                                    <td>${a.status}</td>
+                                    <td>${a.observacoes || '-'}</td>
+                                </tr>
+                            `).join('');
+                        } else {
+                            tbody.innerHTML = '<tr><td colspan="6">Nenhum agendamento</td></tr>';
+                        }
+
+                        // Carregar estatísticas
+                        const statsResp = await fetch('/api/agenda/estatisticas');
+                        const stats = await statsResp.json();
+
+                        document.getElementById('agendaTotal').textContent = stats.estatisticas.total;
+                        document.getElementById('agendaHoje').textContent = stats.estatisticas.hoje;
+                        document.getElementById('agendaProximos').textContent = stats.estatisticas.proximos_7_dias;
+
+                        console.log('✅ Agendamentos carregados!');
+                    } catch (error) {
+                        console.error('❌ Erro:', error);
+                        alert('Erro ao carregar agendamentos: ' + error.message);
+                    }
+                };
+
+                // Submeter formulário
+                document.getElementById('agendaForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    console.log('📝 Salvando visita...');
+
+                    const dados = {
+                        nome_cliente: document.getElementById('agendaNome').value,
+                        whatsapp: document.getElementById('agendaWhatsApp').value,
+                        imovel_id: 1,
+                        data_visita: document.getElementById('agendaData').value,
+                        hora_visita: document.getElementById('agendaHora').value,
+                        observacoes: document.getElementById('agendaObs').value || '',
+                        status: 'agendado'
+                    };
+
+                    try {
+                        const resp = await fetch('/api/agenda/agendamentos', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(dados)
+                        });
+
+                        const result = await resp.json();
+
+                        if (result.success) {
+                            alert('✅ Visita agendada com sucesso!');
+                            window.agendaCancelar();
+                            window.agendaCarregar();
+                        } else {
+                            alert('❌ Erro: ' + result.error);
+                        }
+                    } catch (error) {
+                        console.error('❌ Erro:', error);
+                        alert('Erro ao salvar: ' + error.message);
+                    }
+                });
+
+                console.log('✅ Funções da agenda registradas');
+            </script>
+        </div>
+    </div>
+
+    <!-- Modal para criar/editar imóvel -->
+    <div id="modalImovel" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Novo Imóvel</h2>
+                <button class="close" id="btnFecharModal">&times;</button>
+            </div>
+            <form id="formImovel">
+                <div class="form-group">
+                    <label for="titulo">Título *</label>
+                    <input type="text" id="titulo" name="titulo" required placeholder="Ex: Casa 3 quartos Betim">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo">Tipo *</label>
+                        <select id="tipo" name="tipo" required>
+                            <option value="casa">Casa</option>
+                            <option value="apartamento">Apartamento</option>
+                            <option value="chacara">Chácara</option>
+                            <option value="terreno">Terreno</option>
+                            <option value="comercial">Comercial</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cidade">Cidade *</label>
+                        <input type="text" id="cidade" name="cidade" required placeholder="Ex: Betim">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="area_m2">Área (m²)</label>
+                        <input type="number" id="area_m2" name="area_m2" placeholder="Ex: 150">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preco_total_min">Preço (R$)</label>
+                        <input type="number" id="preco_total_min" name="preco_total_min" placeholder="Ex: 200000">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="disponivel">Disponível</option>
+                        <option value="reservado">Reservado</option>
+                        <option value="vendido">Vendido</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="faq">FAQ / Informações Detalhadas</label>
+                    <textarea id="faq" name="faq" rows="8" placeholder="Descrição completa do imóvel, localização, características, condições de pagamento, etc."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>URLs das Fotos</label>
+                    <div id="fotosContainer">
+                        <div class="foto-input">
+                            <input type="url" class="foto-url" placeholder="https://exemplo.com/foto1.jpg">
+                            <button type="button" class="btn-remove-foto" style="display:none;">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" id="btnAdicionarFoto" class="btn btn-secondary">+ Adicionar Foto</button>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="video_tour">Link Vídeo Tour</label>
+                        <input type="url" id="video_tour" name="video_tour" placeholder="https://youtube.com/...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="planta_baixa">Link Planta Baixa</label>
+                        <input type="url" id="planta_baixa" name="planta_baixa" placeholder="https://drive.google.com/...">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para nova/editar visita -->
+    <div id="modalVisita" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalVisitaTitle">Nova Visita</h2>
+                <button class="close" id="btnFecharModalVisita">&times;</button>
+            </div>
+            <form id="formVisita">
+                <div class="form-group">
+                    <label for="visitaNome">Nome do Cliente *</label>
+                    <input type="text" id="visitaNome" required placeholder="Ex: João Silva">
+                </div>
+
+                <div class="form-group">
+                    <label for="visitaWhatsApp">WhatsApp *</label>
+                    <input type="tel" id="visitaWhatsApp" required placeholder="Ex: 5531999887766">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="visitaData">Data *</label>
+                        <input type="date" id="visitaData" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="visitaHora">Hora *</label>
+                        <input type="time" id="visitaHora" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="visitaImovelId">Imóvel *</label>
+                    <select id="visitaImovelId" required>
+                        <option value="">Selecione um imóvel</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="visitaStatus">Status</label>
+                    <select id="visitaStatus">
+                        <option value="agendado">Agendado ⏳</option>
+                        <option value="confirmado">Confirmado ✅</option>
+                        <option value="realizado">Realizado 🎉</option>
+                        <option value="cancelado">Cancelado ❌</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="visitaObservacoes">Observações</label>
+                    <textarea id="visitaObservacoes" rows="3" placeholder="Observações sobre a visita..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="btnCancelarVisita" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Visita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script src="/static/leads_v2.js?v=1762738405"></script>
+</body>
+</html>

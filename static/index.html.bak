@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Imóveis</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 Dashboard de Imóveis</h1>
+            <p class="subtitle">Gestão de imóveis e leads para integração com Innoitune</p>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="imoveis">📦 Imóveis</button>
+            <button class="tab-button" data-tab="leads">👥 Leads</button>
+        </div>
+
+        <!-- TAB: IMÓVEIS -->
+        <div id="tab-imoveis" class="tab-content active">
+            <div class="actions">
+                <button id="btnNovoImovel" class="btn btn-primary">+ Novo Imóvel</button>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar imóvel...">
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total de Imóveis</span>
+                    <span class="stat-value" id="totalImoveis">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Disponíveis</span>
+                    <span class="stat-value" id="disponiveis">0</span>
+                </div>
+            </div>
+
+            <div id="tableContainer">
+                <table id="imoveisTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Tipo</th>
+                            <th>Cidade</th>
+                            <th>Área (m²)</th>
+                            <th>Preço</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="imoveisBody">
+                        <tr>
+                            <td colspan="8" class="loading">Carregando imóveis...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: LEADS -->
+        <div id="tab-leads" class="tab-content">
+            <!-- Filtros -->
+            <div class="filters-leads">
+                <select id="filterScore" class="filter-select">
+                    <option value="all">Todos os scores</option>
+                    <option value="frio">Leads Frios (0-30) ❄️</option>
+                    <option value="morno">Leads Mornos (31-60) 🌡️</option>
+                    <option value="quente">Leads Quentes (61-100) 🔥</option>
+                </select>
+
+                <select id="filterImovel" class="filter-select">
+                    <option value="all">Todos os imóveis</option>
+                </select>
+
+                <select id="filterAgendamento" class="filter-select">
+                    <option value="all">Todos</option>
+                    <option value="true">Agendou visita ✅</option>
+                    <option value="false">Não agendou ❌</option>
+                </select>
+
+                <button id="btnExportarLeads" class="btn btn-secondary">📥 Exportar CSV</button>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total de Leads</span>
+                    <span class="stat-value" id="totalLeads">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Score Médio</span>
+                    <span class="stat-value" id="scoreMedio">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Agendamentos</span>
+                    <span class="stat-value" id="totalAgendamentos">0</span>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Distribuição por Score</h3>
+                    <canvas id="chartScore"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Leads por Imóvel</h3>
+                    <canvas id="chartImoveis"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabela de Leads -->
+            <div id="tableContainer">
+                <table id="leadsTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>WhatsApp</th>
+                            <th>Score</th>
+                            <th>Imóvel</th>
+                            <th>Agendou?</th>
+                            <th>Atualizado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsBody">
+                        <tr>
+                            <td colspan="6" class="loading">Carregando leads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para criar/editar imóvel -->
+    <div id="modalImovel" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Novo Imóvel</h2>
+                <button class="close" id="btnFecharModal">&times;</button>
+            </div>
+            <form id="formImovel">
+                <div class="form-group">
+                    <label for="titulo">Título *</label>
+                    <input type="text" id="titulo" name="titulo" required placeholder="Ex: Casa 3 quartos Betim">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo">Tipo *</label>
+                        <select id="tipo" name="tipo" required>
+                            <option value="casa">Casa</option>
+                            <option value="apartamento">Apartamento</option>
+                            <option value="chacara">Chácara</option>
+                            <option value="terreno">Terreno</option>
+                            <option value="comercial">Comercial</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cidade">Cidade *</label>
+                        <input type="text" id="cidade" name="cidade" required placeholder="Ex: Betim">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="area_m2">Área (m²)</label>
+                        <input type="number" id="area_m2" name="area_m2" placeholder="Ex: 150">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preco_total_min">Preço (R$)</label>
+                        <input type="number" id="preco_total_min" name="preco_total_min" placeholder="Ex: 200000">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="disponivel">Disponível</option>
+                        <option value="reservado">Reservado</option>
+                        <option value="vendido">Vendido</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="faq">FAQ / Informações Detalhadas</label>
+                    <textarea id="faq" name="faq" rows="8" placeholder="Descrição completa do imóvel, localização, características, condições de pagamento, etc."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>URLs das Fotos</label>
+                    <div id="fotosContainer">
+                        <div class="foto-input">
+                            <input type="url" class="foto-url" placeholder="https://exemplo.com/foto1.jpg">
+                            <button type="button" class="btn-remove-foto" style="display:none;">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" id="btnAdicionarFoto" class="btn btn-secondary">+ Adicionar Foto</button>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="video_tour">Link Vídeo Tour</label>
+                        <input type="url" id="video_tour" name="video_tour" placeholder="https://youtube.com/...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="planta_baixa">Link Planta Baixa</label>
+                        <input type="url" id="planta_baixa" name="planta_baixa" placeholder="https://drive.google.com/...">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script src="/static/leads.js"></script>
+</body>
+</html>

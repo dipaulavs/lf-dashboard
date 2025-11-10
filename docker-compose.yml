@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+             python app.py"
+    volumes:
+      - ./:/app
+    environment:
+      - PORT=5000
+      - PYTHONUNBUFFERED=1
+    networks:
+      - loop9Net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard-imoveis.rule=Host(`dashboard-imoveis.loop9.com.br`)"
+      - "traefik.http.routers.dashboard-imoveis.entrypoints=websecure"
+      - "traefik.http.routers.dashboard-imoveis.tls.certresolver=letsencrypt"
+      - "traefik.http.services.dashboard-imoveis.loadbalancer.server.port=5000"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+
+networks:
+  loop9Net:
+    external: true
