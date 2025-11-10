@@ -28,6 +28,7 @@
             <button class="tab-button active" data-tab="imoveis">📦 Imóveis</button>
             <button class="tab-button" data-tab="leads">👥 Leads</button>
             <button class="tab-button" data-tab="agenda">📅 Agenda</button>
+            <button class="tab-button" data-tab="admin" id="adminTab" style="display: none;">⚙️ Administração</button>
         </div>
 
         <!-- TAB: IMÓVEIS -->
@@ -233,6 +234,43 @@
                         <tr><td colspan="7">Carregando...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- TAB: ADMINISTRAÇÃO -->
+        <div id="tab-admin" class="tab-content">
+            <h2>⚙️ Painel de Administração</h2>
+
+            <!-- Estatísticas de usuários -->
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total de Usuários</span>
+                    <span class="stat-value" id="adminTotalUsers">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Aprovados</span>
+                    <span class="stat-value" id="adminApproved">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Pendentes</span>
+                    <span class="stat-value" id="adminPending">0</span>
+                </div>
+            </div>
+
+            <!-- Lista de usuários pendentes -->
+            <div style="background: white; border-radius: 8px; padding: 24px; margin-top: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 20px 0; color: #1a202c; font-size: 18px;">👥 Usuários Aguardando Aprovação</h3>
+                <div id="adminPendingList">
+                    <p style="text-align: center; color: #718096; padding: 40px 0;">Carregando...</p>
+                </div>
+            </div>
+
+            <!-- Lista de todos os usuários -->
+            <div style="background: white; border-radius: 8px; padding: 24px; margin-top: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 20px 0; color: #1a202c; font-size: 18px;">📋 Todos os Usuários</h3>
+                <div id="adminAllUsersList">
+                    <p style="text-align: center; color: #718096; padding: 40px 0;">Carregando...</p>
+                </div>
             </div>
 
             <!-- Script inline para garantir funcionamento -->
@@ -582,9 +620,158 @@
                         avatar.src = user.picture;
                         avatar.style.display = 'block';
                     }
+
+                    // Mostrar aba Admin se for admin
+                    if (user.is_admin) {
+                        document.getElementById('adminTab').style.display = 'inline-block';
+                    }
                 }
             })
             .catch(err => console.error('Erro ao carregar usuário:', err));
+
+        // Funções do painel administrativo
+        function loadAdminData() {
+            // Carregar usuários pendentes
+            fetch('/api/admin/usuarios/pendentes')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        renderPendingUsers(data.usuarios);
+                        document.getElementById('adminPending').textContent = data.usuarios.length;
+                    }
+                })
+                .catch(err => console.error('Erro ao carregar usuários pendentes:', err));
+
+            // Carregar todos os usuários
+            fetch('/api/admin/usuarios')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        renderAllUsers(data.usuarios);
+                        document.getElementById('adminTotalUsers').textContent = data.usuarios.length;
+                        document.getElementById('adminApproved').textContent = data.usuarios.filter(u => u.approved).length;
+                    }
+                })
+                .catch(err => console.error('Erro ao carregar usuários:', err));
+        }
+
+        function renderPendingUsers(users) {
+            const container = document.getElementById('adminPendingList');
+
+            if (users.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px 0;">Nenhum usuário aguardando aprovação ✅</p>';
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${user.picture || 'https://via.placeholder.com/48'}"
+                             alt="${user.name}"
+                             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;"
+                             onerror="this.src='https://via.placeholder.com/48'">
+                        <div>
+                            <div style="font-weight: 600; color: #1a202c;">${user.name || 'Sem nome'}</div>
+                            <div style="color: #718096; font-size: 14px;">${user.email}</div>
+                            <div style="color: #a0aec0; font-size: 12px;">Criado em: ${new Date(user.created_at).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                    </div>
+                    <button onclick="approveUser(${user.id})"
+                            style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='#38a169'"
+                            onmouseout="this.style.background='#48bb78'">
+                        ✅ Aprovar
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderAllUsers(users) {
+            const container = document.getElementById('adminAllUsersList');
+
+            container.innerHTML = users.map(user => `
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${user.picture || 'https://via.placeholder.com/48'}"
+                             alt="${user.name}"
+                             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;"
+                             onerror="this.src='https://via.placeholder.com/48'">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 600; color: #1a202c;">${user.name || 'Sem nome'}</span>
+                                ${user.is_admin ? '<span style="background: #805ad5; color: white; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">ADMIN</span>' : ''}
+                                ${user.approved ? '<span style="background: #48bb78; color: white; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">APROVADO</span>' : '<span style="background: #ed8936; color: white; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">PENDENTE</span>'}
+                            </div>
+                            <div style="color: #718096; font-size: 14px;">${user.email}</div>
+                            <div style="color: #a0aec0; font-size: 12px;">Último login: ${user.last_login ? new Date(user.last_login).toLocaleString('pt-BR') : 'Nunca'}</div>
+                        </div>
+                    </div>
+                    ${!user.is_admin ? (user.approved ? `
+                        <button onclick="revokeUser(${user.id})"
+                                style="background: #f56565; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='#e53e3e'"
+                                onmouseout="this.style.background='#f56565'">
+                            🚫 Revogar
+                        </button>
+                    ` : `
+                        <button onclick="approveUser(${user.id})"
+                                style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='#38a169'"
+                                onmouseout="this.style.background='#48bb78'">
+                            ✅ Aprovar
+                        </button>
+                    `) : ''}
+                </div>
+            `).join('');
+        }
+
+        function approveUser(userId) {
+            if (!confirm('Deseja aprovar este usuário?')) return;
+
+            fetch(`/api/admin/usuarios/${userId}/aprovar`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Usuário aprovado com sucesso!');
+                        loadAdminData();
+                    } else {
+                        alert('Erro: ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro:', err);
+                    alert('Erro ao aprovar usuário');
+                });
+        }
+
+        function revokeUser(userId) {
+            if (!confirm('Deseja revogar o acesso deste usuário?')) return;
+
+            fetch(`/api/admin/usuarios/${userId}/revogar`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Acesso revogado com sucesso!');
+                        loadAdminData();
+                    } else {
+                        alert('Erro: ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro:', err);
+                    alert('Erro ao revogar usuário');
+                });
+        }
+
+        // Carregar dados admin quando abrir a aba
+        document.addEventListener('DOMContentLoaded', () => {
+            const adminTab = document.querySelector('[data-tab="admin"]');
+            if (adminTab) {
+                adminTab.addEventListener('click', () => {
+                    loadAdminData();
+                });
+            }
+        });
     </script>
 </body>
 </html>

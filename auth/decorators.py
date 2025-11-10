@@ -6,7 +6,7 @@ from flask import session, redirect, url_for, jsonify, request
 
 def login_required(f):
     """
-    Decorator para proteger rotas que requerem autenticação
+    Decorator para proteger rotas que requerem autenticação E aprovação
 
     Usage:
         @app.route('/dashboard')
@@ -24,6 +24,16 @@ def login_required(f):
 
             # Se for página web, redireciona para login
             return redirect(url_for('login'))
+
+        # Verifica se usuário foi aprovado
+        user = session['user']
+        if not user.get('approved'):
+            # Se for API, retorna erro
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Usuário aguardando aprovação do administrador'}), 403
+
+            # Se for web, redireciona para página de espera
+            return redirect(url_for('aguardando_aprovacao'))
 
         return f(*args, **kwargs)
 
@@ -43,16 +53,18 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
+            # Se for API, retorna JSON
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Não autenticado'}), 401
             return redirect(url_for('login'))
 
-        # Verifica se usuário é admin (pode expandir lógica depois)
+        # Verifica se usuário é admin
         user = session['user']
-        admin_emails = [
-            'felipidipaula@gmail.com',  # Adicione emails de admins aqui
-        ]
-
-        if user.get('email') not in admin_emails:
-            return jsonify({'error': 'Permissão negada'}), 403
+        if not user.get('is_admin'):
+            # Se for API, retorna JSON
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Permissão negada - apenas administradores'}), 403
+            return redirect(url_for('index'))
 
         return f(*args, **kwargs)
 

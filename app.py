@@ -13,7 +13,7 @@ import time
 import secrets
 from datetime import datetime
 from database import LeadsDatabase
-from auth import init_oauth, login_required, UserModel
+from auth import init_oauth, login_required, admin_required, UserModel
 
 app = Flask(__name__)
 CORS(app)
@@ -94,10 +94,12 @@ def authorize():
             'google_id': user_info['sub'],
             'email': user_info['email'],
             'name': user_info.get('name', ''),
-            'picture': user_info.get('picture', '')
+            'picture': user_info.get('picture', ''),
+            'approved': resultado.get('approved', False),
+            'is_admin': resultado.get('is_admin', False)
         }
 
-        # Redireciona para dashboard
+        # Redireciona para dashboard (decorator vai verificar aprovação)
         return redirect('/')
 
     except Exception as e:
@@ -112,13 +114,30 @@ def logout():
 
 
 @app.route('/api/user')
-@login_required
 def api_user():
-    """Retorna dados do usuário logado"""
+    """Retorna dados do usuário logado (sem @login_required para aguardando aprovação)"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+
     return jsonify({
         'success': True,
         'user': session.get('user')
     })
+
+
+@app.route('/aguardando-aprovacao')
+def aguardando_aprovacao():
+    """Página de espera para usuários não aprovados"""
+    # Se não está logado, redireciona para login
+    if 'user' not in session:
+        return redirect('/login')
+
+    # Se está aprovado, redireciona para dashboard
+    if session['user'].get('approved'):
+        return redirect('/')
+
+    # Mostra página de espera
+    return send_from_directory('static', 'aguardando-aprovacao.html')
 
 
 # ==================== AUTENTICAÇÃO API ====================
@@ -1211,6 +1230,55 @@ def salvar_observacoes():
         }), 400
 
     resultado = db_leads.salvar_configuracao('agenda_observacoes', dados['observacoes'])
+
+    return jsonify(resultado)
+
+# ==================== ENDPOINTS ADMIN ====================
+
+@app.route('/api/admin/usuarios', methods=['GET'])
+@admin_required
+def listar_todos_usuarios():
+    """Lista todos os usuários (somente admin)"""
+    usuarios = user_model.listar_todos()
+
+    return jsonify({
+        'success': True,
+        'usuarios': usuarios
+    })
+
+
+@app.route('/api/admin/usuarios/pendentes', methods=['GET'])
+@admin_required
+def listar_usuarios_pendentes():
+    """Lista usuários aguardando aprovação (somente admin)"""
+    usuarios = user_model.listar_pendentes()
+
+    return jsonify({
+        'success': True,
+        'usuarios': usuarios
+    })
+
+
+@app.route('/api/admin/usuarios/<int:user_id>/aprovar', methods=['POST'])
+@admin_required
+def aprovar_usuario(user_id):
+    """Aprova um usuário (somente admin)"""
+    resultado = user_model.aprovar_usuario(user_id)
+
+    if not resultado['success']:
+        return jsonify(resultado), 404
+
+    return jsonify(resultado)
+
+
+@app.route('/api/admin/usuarios/<int:user_id>/revogar', methods=['POST'])
+@admin_required
+def revogar_usuario(user_id):
+    """Revoga aprovação de um usuário (somente admin)"""
+    resultado = user_model.revogar_usuario(user_id)
+
+    if not resultado['success']:
+        return jsonify(resultado), 404
 
     return jsonify(resultado)
 

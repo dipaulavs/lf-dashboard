@@ -32,6 +32,8 @@ class UserModel:
                 access_token TEXT,
                 refresh_token TEXT,
                 token_expires_at TIMESTAMP,
+                approved INTEGER DEFAULT 0,
+                is_admin INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP
             )
@@ -40,6 +42,18 @@ class UserModel:
         # Índices
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_google_id ON users(google_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_email ON users(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_approved ON users(approved)")
+
+        # Adicionar colunas se não existirem (migração)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 0")
+        except:
+            pass
+
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+        except:
+            pass
 
         conn.commit()
         conn.close()
@@ -53,7 +67,7 @@ class UserModel:
             token: Token OAuth (access_token, refresh_token, expires_at)
 
         Returns:
-            Dict com success e user_id
+            Dict com success, user_id, approved, is_admin
         """
         conn = self.db._get_connection()
         cursor = conn.cursor()
@@ -69,35 +83,45 @@ class UserModel:
 
         now = datetime.now().isoformat()
 
+        # Verificar se é admin
+        is_admin = 1 if email == 'felipidipaula@gmail.com' else 0
+        approved = 1 if is_admin else 0  # Admin sempre aprovado
+
         try:
             # Tenta atualizar
             cursor.execute("""
                 UPDATE users
                 SET name = ?, picture = ?, access_token = ?,
                     refresh_token = COALESCE(?, refresh_token),
-                    token_expires_at = ?, last_login = ?
+                    token_expires_at = ?, last_login = ?,
+                    is_admin = ?, approved = CASE WHEN is_admin = 1 THEN 1 ELSE approved END
                 WHERE google_id = ?
-            """, (name, picture, access_token, refresh_token, expires_at, now, google_id))
+            """, (name, picture, access_token, refresh_token, expires_at, now, is_admin, google_id))
 
             if cursor.rowcount == 0:
                 # Se não atualizou, cria novo
                 cursor.execute("""
                     INSERT INTO users
-                    (google_id, email, name, picture, access_token, refresh_token, token_expires_at, created_at, last_login)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (google_id, email, name, picture, access_token, refresh_token, expires_at, now, now))
+                    (google_id, email, name, picture, access_token, refresh_token, token_expires_at, approved, is_admin, created_at, last_login)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (google_id, email, name, picture, access_token, refresh_token, expires_at, approved, is_admin, now, now))
 
                 user_id = cursor.lastrowid
             else:
                 # Busca ID do usuário atualizado
-                cursor.execute("SELECT id FROM users WHERE google_id = ?", (google_id,))
-                user_id = cursor.fetchone()['id']
+                cursor.execute("SELECT id, approved, is_admin FROM users WHERE google_id = ?", (google_id,))
+                row = cursor.fetchone()
+                user_id = row['id']
+                approved = row['approved']
+                is_admin = row['is_admin']
 
             conn.commit()
 
             return {
                 'success': True,
-                'user_id': user_id
+                'user_id': user_id,
+                'approved': approved,
+                'is_admin': is_admin
             }
 
         except Exception as e:
@@ -136,7 +160,7 @@ class UserModel:
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, google_id, email, name, picture, created_at, last_login
+            SELECT id, google_id, email, name, picture, approved, is_admin, created_at, last_login
             FROM users
             ORDER BY last_login DESC
         """)
@@ -145,3 +169,58 @@ class UserModel:
 
         conn.close()
         return users
+
+    def listar_pendentes(self) -> list:
+        """Lista usuários aguardando aprovação"""
+        conn = self.db._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, google_id, email, name, picture, created_at
+            FROM users
+            WHERE approved = 0 AND is_admin = 0
+            ORDER BY created_at DESC
+        """)
+
+        users = [dict(row) for row in cursor.fetchall()]
+
+        conn.close()
+        return users
+
+    def aprovar_usuario(self, user_id: int) -> Dict[str, Any]:
+        """Aprova um usuário"""
+        conn = self.db._get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("UPDATE users SET approved = 1 WHERE id = ?", (user_id,))
+            conn.commit()
+
+            if cursor.rowcount == 0:
+                return {'success': False, 'error': 'Usuário não encontrado'}
+
+            return {'success': True, 'message': 'Usuário aprovado'}
+
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def revogar_usuario(self, user_id: int) -> Dict[str, Any]:
+        """Revoga aprovação de um usuário"""
+        conn = self.db._get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("UPDATE users SET approved = 0 WHERE id = ? AND is_admin = 0", (user_id,))
+            conn.commit()
+
+            if cursor.rowcount == 0:
+                return {'success': False, 'error': 'Usuário não encontrado ou é admin'}
+
+            return {'success': True, 'message': 'Aprovação revogada'}
+
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
