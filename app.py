@@ -11,9 +11,16 @@ import json
 import os
 import time
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from database import LeadsDatabase
 from auth import init_oauth, login_required, admin_required, UserModel
+
+# Fuso horário de Brasília (UTC-3)
+BRASILIA_TZ = timezone(timedelta(hours=-3))
+
+def now_brasilia():
+    """Retorna datetime atual no horário de Brasília"""
+    return datetime.now(BRASILIA_TZ)
 
 app = Flask(__name__)
 CORS(app)
@@ -236,7 +243,7 @@ def health():
     return jsonify({
         'success': True,
         'status': 'online',
-        'timestamp': datetime.now().isoformat()
+        'timestamp': now_brasilia().isoformat()
     })
 
 # ==================== ENDPOINTS TEXTO PURO (para Innoitune) ====================
@@ -631,7 +638,7 @@ def criar_imovel():
         'area_m2': dados.get('area_m2', 0),
         'preco_total_min': dados.get('preco_total_min', 0),
         'status': dados.get('status', 'disponivel'),
-        'criado_em': datetime.now().isoformat()
+        'criado_em': now_brasilia().isoformat()
     }
 
     # Adicionar ao índice
@@ -682,7 +689,7 @@ def atualizar_imovel(imovel_id):
         if campo in dados:
             imovel[campo] = dados[campo]
 
-    imovel['atualizado_em'] = datetime.now().isoformat()
+    imovel['atualizado_em'] = now_brasilia().isoformat()
     salvar_indice(indice)
 
     # Atualizar FAQ se fornecido
@@ -1110,7 +1117,7 @@ def exportar_leads():
 
     return csv, 200, {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': f'attachment; filename=leads_{datetime.now().strftime("%Y%m%d")}.csv'
+        'Content-Disposition': f'attachment; filename=leads_{now_brasilia().strftime("%Y%m%d")}.csv'
     }
 
 @app.route('/api/estatisticas', methods=['GET'])
@@ -1314,7 +1321,7 @@ def consultar_agenda_agente():
                 'error': 'Formato de data inválido. Use YYYY-MM-DD'
             }), 400
     else:
-        data_inicio = datetime.now().date()
+        data_inicio = now_brasilia().date()
 
     # Data final
     data_fim = data_inicio + timedelta(days=dias)

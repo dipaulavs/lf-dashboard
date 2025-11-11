@@ -3,9 +3,16 @@ Sistema de Banco de Dados para Leads
 Gerencia score, histórico e agendamentos
 """
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 from pathlib import Path
+
+# Fuso horário de Brasília (UTC-3)
+BRASILIA_TZ = timezone(timedelta(hours=-3))
+
+def now_brasilia():
+    """Retorna datetime atual no horário de Brasília"""
+    return datetime.now(BRASILIA_TZ)
 
 class LeadsDatabase:
     def __init__(self, db_path: str = "data/dashboard.db"):
@@ -116,7 +123,7 @@ class LeadsDatabase:
         cursor.execute("SELECT id, score FROM leads WHERE whatsapp = ?", (whatsapp,))
         lead_existente = cursor.fetchone()
 
-        timestamp = datetime.now().isoformat()
+        timestamp = now_brasilia().isoformat()
 
         if lead_existente:
             # Atualiza lead existente
@@ -299,7 +306,7 @@ class LeadsDatabase:
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        timestamp = datetime.now().isoformat()
+        timestamp = now_brasilia().isoformat()
 
         try:
             cursor.execute("""
@@ -377,7 +384,7 @@ class LeadsDatabase:
             return {"success": False, "error": "Nenhum campo para atualizar"}
 
         updates.append("atualizado_em = ?")
-        params.append(datetime.now().isoformat())
+        params.append(now_brasilia().isoformat())
         params.append(agendamento_id)
 
         query = f"UPDATE agendamentos SET {', '.join(updates)} WHERE id = ?"
@@ -435,13 +442,13 @@ class LeadsDatabase:
         total = cursor.fetchone()['total']
 
         # Visitas hoje
-        hoje = datetime.now().date().isoformat()
+        hoje = now_brasilia().date().isoformat()
         cursor.execute("SELECT COUNT(*) as hoje FROM agendamentos WHERE data_visita = ?", (hoje,))
         hoje_count = cursor.fetchone()['hoje']
 
         # Próximos 7 dias
         from datetime import timedelta
-        proximos_7 = (datetime.now().date() + timedelta(days=7)).isoformat()
+        proximos_7 = (now_brasilia().date() + timedelta(days=7)).isoformat()
         cursor.execute("""
             SELECT COUNT(*) as proximos7
             FROM agendamentos
@@ -471,7 +478,7 @@ class LeadsDatabase:
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        timestamp = datetime.now().isoformat()
+        timestamp = now_brasilia().isoformat()
 
         try:
             cursor.execute("""
