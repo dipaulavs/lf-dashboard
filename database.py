@@ -434,7 +434,7 @@ class LeadsDatabase:
                 query += " AND imovel_id = ?"
                 params.append(filtros['imovel_id'])
 
-        query += " ORDER BY data_visita ASC, hora_visita ASC"
+        query += " ORDER BY criado_em DESC"
 
         cursor.execute(query, params)
         agendamentos = [dict(row) for row in cursor.fetchall()]
