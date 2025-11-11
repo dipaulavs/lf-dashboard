@@ -11,8 +11,9 @@ from pathlib import Path
 BRASILIA_TZ = timezone(timedelta(hours=-3))
 
 def now_brasilia():
-    """Retorna datetime atual no horário de Brasília"""
-    return datetime.now(BRASILIA_TZ)
+    """Retorna datetime atual no horário de Brasília (sem timezone para evitar conversão no frontend)"""
+    # Retorna datetime "naive" no horário de Brasília (sem info de timezone)
+    return datetime.now(BRASILIA_TZ).replace(tzinfo=None)
 
 class LeadsDatabase:
     def __init__(self, db_path: str = "data/dashboard.db"):
