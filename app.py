@@ -14,6 +14,7 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from database import LeadsDatabase
 from auth import init_oauth, login_required, admin_required, UserModel
+from decorators import protect_endpoint
 
 # Fuso horário de Brasília (UTC-3)
 BRASILIA_TZ = timezone(timedelta(hours=-3))
@@ -758,28 +759,43 @@ def deletar_imovel(imovel_id):
 
 @app.route('/api/leads/score', methods=['GET'])
 @require_api_key
+@protect_endpoint(
+    max_requests=10,  # 10 req/s por IP
+    window_seconds=1,
+    dedup_window=5,  # Bloqueia duplicatas em 5s
+    dedup_params=['whatsapp', 'score']  # Considera whatsapp+score para dedup
+)
 def atualizar_score():
     """
     ENDPOINT 1: Atualizar apenas o SCORE do lead
 
-    Uso: /api/leads/score?whatsapp=5531999887766&nome=João Silva&score=45
+    Uso: /api/leads/score?whatsapp=5531999887766&nome=João Silva&imovel_id=4&score=45
 
     Query params:
         - whatsapp: Número WhatsApp (obrigatório)
         - nome: Nome do lead (obrigatório)
+        - imovel_id: ID do imóvel (obrigatório)
         - score: Score do lead 0-100 (obrigatório)
+
+    Protection:
+        - Rate limit: 10 req/s por IP
+        - Deduplication: 5s window (whatsapp+score)
+        - Retry on lock: 3 tentativas com backoff exponencial
     """
     whatsapp = request.args.get('whatsapp')
     nome = request.args.get('nome')
+    imovel_id = request.args.get('imovel_id')
     score = request.args.get('score')
 
-    # Validações
-    if not whatsapp or not nome or not score:
+    # Validações básicas
+    if not whatsapp or not nome or not imovel_id or not score:
         return jsonify({
             'success': False,
-            'error': 'Parâmetros obrigatórios: whatsapp, nome, score'
+            'error': 'Parâmetros obrigatórios: whatsapp, nome, imovel_id, score',
+            'example': '/api/leads/score?whatsapp=5531999887766&nome=João Silva&imovel_id=4&score=45'
         }), 400
 
+    # Validar score
     try:
         score = int(score)
         if score < 0 or score > 100:
@@ -788,6 +804,15 @@ def atualizar_score():
         return jsonify({
             'success': False,
             'error': f'Score inválido: {str(e)}'
+        }), 400
+
+    # Validar imovel_id
+    try:
+        imovel_id = int(imovel_id)
+    except ValueError:
+        return jsonify({
+            'success': False,
+            'error': 'imovel_id deve ser um número'
         }), 400
 
     # Limpar whatsapp
@@ -800,7 +825,7 @@ def atualizar_score():
     resultado = db_leads.registrar_lead(
         whatsapp=whatsapp,
         nome=nome,
-        imovel_id=lead_existente.get('imovel_id') if lead_existente else None,
+        imovel_id=imovel_id,
         score=score,
         agendou_visita=lead_existente.get('agendou_visita', False) if lead_existente else False
     )
@@ -809,6 +834,12 @@ def atualizar_score():
 
 @app.route('/api/leads/imovel', methods=['GET'])
 @require_api_key
+@protect_endpoint(
+    max_requests=10,  # 10 req/s por IP
+    window_seconds=1,
+    dedup_window=5,  # Bloqueia duplicatas em 5s
+    dedup_params=['whatsapp', 'imovel_id']  # Considera whatsapp+imovel_id para dedup
+)
 def definir_imovel():
     """
     ENDPOINT 2: Definir qual IMÓVEL o lead tem interesse
@@ -819,6 +850,11 @@ def definir_imovel():
         - whatsapp: Número WhatsApp (obrigatório)
         - nome: Nome do lead (obrigatório)
         - imovel_id: ID do imóvel (obrigatório)
+
+    Protection:
+        - Rate limit: 10 req/s por IP
+        - Deduplication: 5s window (whatsapp+imovel_id)
+        - Retry on lock: 3 tentativas com backoff exponencial
     """
     whatsapp = request.args.get('whatsapp')
     nome = request.args.get('nome')

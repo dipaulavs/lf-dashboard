@@ -40,11 +40,11 @@ Dashboard profissional para gestão de leads e agendamentos de visitas em imobil
 ### LEADS (GET - Campos Separados)
 
 ```bash
-# 1. Atualizar Score
-GET /api/leads/score?whatsapp=5531999887766&nome=João Silva&score=45
-
-# 2. Definir Imóvel
+# 1. Definir Imóvel (OBRIGATÓRIO PRIMEIRO)
 GET /api/leads/imovel?whatsapp=5531999887766&nome=João Silva&imovel_id=4
+
+# 2. Atualizar Score (REQUER: nome + imovel_id)
+GET /api/leads/score?whatsapp=5531999887766&nome=João Silva&imovel_id=4&score=45
 
 # 3. Marcar Flag Agendamento
 GET /api/leads/agendar?whatsapp=5531999887766&nome=João Silva&agendou=true
@@ -98,18 +98,22 @@ ngrok http 5555
 ```
 Cliente WhatsApp → Agente IA → Dashboard API
 
-1. Lead inicia conversa
-   → GET /api/leads/score?score=15
+1. Lead inicia conversa + captura nome
+   → Aguarda identificar interesse em imóvel
 
-2. Lead pergunta sobre imóvel
-   → GET /api/leads/imovel?imovel_id=4
-   → GET /api/leads/score?score=35
+2. Lead pergunta sobre imóvel (PRIMEIRO REGISTRO)
+   → GET /api/leads/imovel?whatsapp=XXX&nome=João Silva&imovel_id=4
+   ✅ Lead registrado com dados mínimos
 
-3. Lead quer agendar
+3. Lead demonstra interesse (ATUALIZAR SCORE)
+   → GET /api/leads/score?whatsapp=XXX&nome=João Silva&imovel_id=4&score=35
+   ✅ Score atualizado (REQUER nome + imovel_id)
+
+4. Lead quer agendar
    → GET /api/agente/consultar-agenda?dias=7
    → POST /api/agente/agendar-visita
-   → GET /api/leads/agendar?agendou=true
-   → GET /api/leads/score?score=90
+   → GET /api/leads/agendar?whatsapp=XXX&nome=João Silva&agendou=true
+   → GET /api/leads/score?whatsapp=XXX&nome=João Silva&imovel_id=4&score=90
 ```
 
 ---

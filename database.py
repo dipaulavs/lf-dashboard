@@ -3,8 +3,10 @@ Sistema de Banco de Dados para Leads
 Gerencia score, histórico e agendamentos
 """
 import sqlite3
+import time
+from functools import wraps
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Callable
 from pathlib import Path
 
 # Fuso horário de Brasília (UTC-3)
@@ -15,22 +17,93 @@ def now_brasilia():
     # Retorna datetime "naive" no horário de Brasília (sem info de timezone)
     return datetime.now(BRASILIA_TZ).replace(tzinfo=None)
 
+
+def retry_on_db_lock(max_retries: int = 3, backoff_ms: int = 100) -> Callable:
+    """
+    Decorator para retry em operações que podem gerar database locked
+
+    Args:
+        max_retries: Número máximo de tentativas
+        backoff_ms: Tempo base de espera entre tentativas (cresce exponencialmente)
+
+    Usage:
+        @retry_on_db_lock(max_retries=3, backoff_ms=100)
+        def minha_funcao_de_escrita(self, ...):
+            # código que acessa banco
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_error = None
+
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except sqlite3.OperationalError as e:
+                    if "database is locked" in str(e).lower():
+                        last_error = e
+                        if attempt < max_retries - 1:
+                            # Exponential backoff: 100ms, 200ms, 400ms
+                            sleep_time = (backoff_ms * (2 ** attempt)) / 1000
+                            time.sleep(sleep_time)
+                            continue
+                    # Se não for "locked" ou última tentativa, levanta erro
+                    raise
+
+            # Todas tentativas falharam
+            raise last_error
+
+        return wrapper
+    return decorator
+
+
 class LeadsDatabase:
     def __init__(self, db_path: str = "data/dashboard.db"):
         self.db_path = db_path
         self._criar_tabelas()
 
     def _get_connection(self):
-        """Cria conexão com SQLite"""
+        """
+        Cria conexão com SQLite otimizada para concorrência
+
+        Configurações:
+        - timeout=30s: Aguarda até 30s se DB estiver locked
+        - check_same_thread=False: Permite uso em múltiplas threads
+        - row_factory: Retorna dicts ao invés de tuplas
+        """
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(
+            self.db_path,
+            timeout=30.0,  # Aguarda 30s antes de lançar OperationalError
+            check_same_thread=False  # Permite threads Flask simultâneas
+        )
         conn.row_factory = sqlite3.Row  # Retorna dicts
         return conn
 
     def _criar_tabelas(self):
-        """Cria estrutura do banco de dados"""
+        """
+        Cria estrutura do banco de dados com otimizações de concorrência
+
+        Ativa WAL mode (Write-Ahead Logging):
+        - Permite leituras durante escritas
+        - Melhor performance em alta concorrência
+        - Reduz locks em até 90%
+        """
         conn = self._get_connection()
         cursor = conn.cursor()
+
+        # ========== OTIMIZAÇÕES DE CONCORRÊNCIA ==========
+        # WAL mode: Permite leituras simultâneas durante escritas
+        cursor.execute("PRAGMA journal_mode=WAL")
+
+        # Aumenta timeout de busy (30s)
+        cursor.execute("PRAGMA busy_timeout=30000")
+
+        # Desabilita fsync em checkpoints (mais rápido, seguro para nosso caso)
+        cursor.execute("PRAGMA synchronous=NORMAL")
+
+        # Cache de 10MB para melhor performance
+        cursor.execute("PRAGMA cache_size=-10000")
 
         # Tabela principal de leads
         cursor.execute("""
@@ -95,6 +168,7 @@ class LeadsDatabase:
         conn.commit()
         conn.close()
 
+    @retry_on_db_lock(max_retries=3, backoff_ms=100)
     def registrar_lead(self, whatsapp: str, nome: str, imovel_id: int,
                       score: int, agendou_visita: bool) -> Dict[str, Any]:
         """
@@ -109,6 +183,9 @@ class LeadsDatabase:
 
         Returns:
             Dict com success, lead_id, e acao (created/updated)
+
+        Note:
+            Protegido com @retry_on_db_lock para resistir a bursts
         """
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -210,7 +287,7 @@ class LeadsDatabase:
                 query += " AND agendou_visita = ?"
                 params.append(1 if filtros['agendou_visita'] else 0)
 
-        query += " ORDER BY score DESC, atualizado_em DESC"
+        query += " ORDER BY atualizado_em DESC"
 
         cursor.execute(query, params)
         leads = [dict(row) for row in cursor.fetchall()]
