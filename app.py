@@ -913,6 +913,18 @@ def definir_imovel():
     # Buscar lead existente
     lead_existente = db_leads.buscar_lead(whatsapp)
 
+    # VERIFICAR SE JÁ ESTÁ TAGUEADO NO MESMO IMÓVEL
+    if lead_existente and lead_existente.get('imovel_id') == imovel_id:
+        return jsonify({
+            'success': True,
+            'acao': 'already_tagged',
+            'lead_id': lead_existente.get('id'),
+            'imovel_id': imovel_id,
+            'score': lead_existente.get('score', 0),
+            'mensagem': f'Lead já está tagueado no imóvel {imovel_id}',
+            'instrucao_agente': 'Este lead já demonstrou interesse neste imóvel anteriormente. Não é necessário chamar esta ferramenta novamente. Use a ferramenta "atualizar score" para registrar novas interações.'
+        }), 200
+
     # Registrar/atualizar mantendo outros dados
     resultado = db_leads.registrar_lead(
         whatsapp=whatsapp,
