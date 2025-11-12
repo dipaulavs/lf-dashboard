@@ -794,7 +794,7 @@ def atualizar_score():
 
         if not nome:
             dados_faltantes.append('nome')
-            acoes_sugeridas.append('Pergunte: "Qual é o seu nome completo?"')
+            acoes_sugeridas.append('Pergunte: "Qual é o seu nome?"')
 
         if not imovel_id:
             dados_faltantes.append('imovel_id')
@@ -884,7 +884,7 @@ def definir_imovel():
 
         if not nome:
             dados_faltantes.append('nome')
-            acoes_sugeridas.append('Pergunte ao cliente: "Qual é o seu nome completo?"')
+            acoes_sugeridas.append('Pergunte ao cliente: "Qual é o seu nome?"')
 
         if not imovel_id:
             dados_faltantes.append('imovel_id')
