@@ -787,13 +787,30 @@ def atualizar_score():
     imovel_id = request.args.get('imovel_id')
     score = request.args.get('score')
 
-    # Validações básicas
+    # Validações com orientações para o agente
     if not whatsapp or not nome or not imovel_id or not score:
+        dados_faltantes = []
+        acoes_sugeridas = []
+
+        if not nome:
+            dados_faltantes.append('nome')
+            acoes_sugeridas.append('Pergunte: "Qual é o seu nome completo?"')
+
+        if not imovel_id:
+            dados_faltantes.append('imovel_id')
+            acoes_sugeridas.append('Use a ferramenta "buscar imoveis" para listar os imóveis disponíveis e identifique qual imóvel o cliente tem interesse')
+
+        if not score:
+            dados_faltantes.append('score')
+
         return jsonify({
             'success': False,
-            'error': 'Parâmetros obrigatórios: whatsapp, nome, imovel_id, score',
-            'example': '/api/leads/score?whatsapp=5531999887766&nome=João Silva&imovel_id=4&score=45'
-        }), 400
+            'error': 'Dados insuficientes para atualizar score',
+            'dados_faltantes': dados_faltantes,
+            'instrucao_agente': 'Você precisa coletar mais informações do cliente antes de atualizar o score',
+            'acoes_necessarias': acoes_sugeridas,
+            'proximo_passo': 'Após coletar nome e identificar o imóvel de interesse, chame novamente esta ferramenta com todos os parâmetros'
+        }), 200
 
     # Validar score
     try:
@@ -860,12 +877,27 @@ def definir_imovel():
     nome = request.args.get('nome')
     imovel_id = request.args.get('imovel_id')
 
-    # Validações
+    # Validações com orientações para o agente
     if not whatsapp or not nome or not imovel_id:
+        dados_faltantes = []
+        acoes_sugeridas = []
+
+        if not nome:
+            dados_faltantes.append('nome')
+            acoes_sugeridas.append('Pergunte ao cliente: "Qual é o seu nome completo?"')
+
+        if not imovel_id:
+            dados_faltantes.append('imovel_id')
+            acoes_sugeridas.append('Use a ferramenta "buscar imoveis" (sara imoveis ou lcj) para listar os imóveis disponíveis e identifique qual imóvel o cliente mencionou ou demonstrou interesse')
+
         return jsonify({
             'success': False,
-            'error': 'Parâmetros obrigatórios: whatsapp, nome, imovel_id'
-        }), 400
+            'error': 'Dados insuficientes para registrar interesse no imóvel',
+            'dados_faltantes': dados_faltantes,
+            'instrucao_agente': 'Você precisa coletar o nome do cliente e identificar em qual imóvel ele está interessado',
+            'acoes_necessarias': acoes_sugeridas,
+            'proximo_passo': 'Após coletar nome e identificar o ID do imóvel, chame novamente esta ferramenta'
+        }), 200
 
     try:
         imovel_id = int(imovel_id)
