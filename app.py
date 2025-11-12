@@ -941,12 +941,23 @@ def marcar_agendamento():
     nome = request.args.get('nome')
     agendou = request.args.get('agendou', 'false').lower() == 'true'
 
-    # Validações
+    # Validações com orientações para o agente
     if not whatsapp or not nome:
+        dados_faltantes = []
+        acoes_sugeridas = []
+
+        if not nome:
+            dados_faltantes.append('nome')
+            acoes_sugeridas.append('Pergunte ao cliente: "Qual é o seu nome?"')
+
         return jsonify({
             'success': False,
-            'error': 'Parâmetros obrigatórios: whatsapp, nome, agendou'
-        }), 400
+            'error': 'Dados insuficientes para marcar agendamento',
+            'dados_faltantes': dados_faltantes,
+            'instrucao_agente': 'Você precisa coletar o nome do cliente antes de marcar o agendamento',
+            'acoes_necessarias': acoes_sugeridas,
+            'proximo_passo': 'Após coletar o nome, chame novamente esta ferramenta'
+        }), 200
 
     # Limpar whatsapp
     whatsapp = str(whatsapp).replace('+', '').replace(' ', '').replace('-', '')
@@ -1229,14 +1240,30 @@ def criar_agendamento():
     """Cria novo agendamento"""
     dados = request.json
 
-    # Validações
+    # Validações com orientações para o agente
     campos_obrigatorios = ['nome_cliente', 'whatsapp', 'imovel_id', 'data_visita', 'hora_visita']
-    for campo in campos_obrigatorios:
-        if campo not in dados:
-            return jsonify({
-                'success': False,
-                'error': f'Campo "{campo}" é obrigatório'
-            }), 400
+    campos_faltantes = [campo for campo in campos_obrigatorios if campo not in dados or not dados.get(campo)]
+
+    if campos_faltantes:
+        acoes_sugeridas = []
+
+        if 'nome_cliente' in campos_faltantes:
+            acoes_sugeridas.append('Pergunte ao cliente: "Qual é o seu nome?"')
+
+        if 'imovel_id' in campos_faltantes:
+            acoes_sugeridas.append('Identifique qual imóvel o cliente quer visitar')
+
+        if 'data_visita' in campos_faltantes or 'hora_visita' in campos_faltantes:
+            acoes_sugeridas.append('Pergunte ao cliente qual data e horário prefere para a visita')
+
+        return jsonify({
+            'success': False,
+            'error': 'Dados insuficientes para criar agendamento',
+            'dados_faltantes': campos_faltantes,
+            'instrucao_agente': 'Colete todas as informações necessárias antes de criar o agendamento',
+            'acoes_necessarias': acoes_sugeridas,
+            'proximo_passo': 'Após coletar todos os dados, chame novamente esta ferramenta'
+        }), 200
 
     resultado = db_leads.criar_agendamento(
         nome_cliente=dados['nome_cliente'],
@@ -1454,14 +1481,30 @@ def agendar_visita_agente():
     """
     dados = request.json
 
-    # Validações
+    # Validações com orientações para o agente
     campos_obrigatorios = ['nome_cliente', 'whatsapp', 'imovel_id', 'data_visita', 'hora_visita']
-    for campo in campos_obrigatorios:
-        if campo not in dados:
-            return jsonify({
-                'success': False,
-                'error': f'Campo "{campo}" é obrigatório'
-            }), 400
+    campos_faltantes = [campo for campo in campos_obrigatorios if campo not in dados or not dados.get(campo)]
+
+    if campos_faltantes:
+        acoes_sugeridas = []
+
+        if 'nome_cliente' in campos_faltantes:
+            acoes_sugeridas.append('Pergunte ao cliente: "Qual é o seu nome?"')
+
+        if 'imovel_id' in campos_faltantes:
+            acoes_sugeridas.append('Use a ferramenta "buscar imoveis" para listar os imóveis e identifique qual o cliente quer visitar')
+
+        if 'data_visita' in campos_faltantes or 'hora_visita' in campos_faltantes:
+            acoes_sugeridas.append('Use a ferramenta "consultar-agenda" para ver disponibilidade e pergunte ao cliente qual data/horário prefere')
+
+        return jsonify({
+            'success': False,
+            'error': 'Dados insuficientes para agendar visita',
+            'dados_faltantes': campos_faltantes,
+            'instrucao_agente': 'Você precisa coletar todas as informações necessárias antes de agendar a visita',
+            'acoes_necessarias': acoes_sugeridas,
+            'proximo_passo': 'Após coletar todos os dados, chame novamente esta ferramenta'
+        }), 200
 
     # Limpar whatsapp
     whatsapp = str(dados['whatsapp']).replace('+', '').replace(' ', '').replace('-', '')
