@@ -920,31 +920,30 @@ def definir_imovel():
             'acao': 'already_tagged',
             'lead_id': lead_existente.get('id'),
             'imovel_id': imovel_id,
-            'score': lead_existente.get('score', 0),
             'mensagem': f'Lead já está tagueado no imóvel {imovel_id}',
             'instrucao_agente': 'Este lead já demonstrou interesse neste imóvel anteriormente. Não é necessário chamar esta ferramenta novamente, EXCETO se o cliente demonstrar interesse em um OUTRO imóvel diferente. Use a ferramenta "atualizar score" para registrar novas interações sobre o mesmo imóvel.'
         }), 200
 
     # PERMITIR MUDANÇA DE IMÓVEL (se cliente mudar de interesse)
     if lead_existente and lead_existente.get('imovel_id') and lead_existente.get('imovel_id') != imovel_id:
-        # Cliente mudou de interesse, atualizar para novo imóvel
+        # Cliente mudou de interesse, atualizar para novo imóvel (SEM mexer no score)
         resultado = db_leads.registrar_lead(
             whatsapp=whatsapp,
             nome=nome,
             imovel_id=imovel_id,
-            score=lead_existente.get('score', 0),  # Mantém score atual
+            score=0,  # Reseta score ao mudar de imóvel
             agendou_visita=False  # Reset flag de agendamento
         )
         resultado['observacao'] = f'Cliente mudou interesse do imóvel {lead_existente.get("imovel_id")} para o imóvel {imovel_id}'
         return jsonify(resultado), 200
 
-    # Registrar/atualizar mantendo outros dados
+    # Registrar lead NOVO (primeira vez)
     resultado = db_leads.registrar_lead(
         whatsapp=whatsapp,
         nome=nome,
         imovel_id=imovel_id,
-        score=lead_existente.get('score', 0) if lead_existente else 0,
-        agendou_visita=lead_existente.get('agendou_visita', False) if lead_existente else False
+        score=0,  # Score inicial sempre 0
+        agendou_visita=False
     )
 
     return jsonify(resultado), 200
